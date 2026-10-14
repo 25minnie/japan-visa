@@ -354,6 +354,17 @@
         <button class="wiz-back" data-back>← 上一步</button>
       </div>
 
+      <!-- 自由职业：流水核验分支 -->
+      <div class="wiz-step" id="step-free-flow" hidden>
+        <div class="wiz-q"><span class="wiz-num">4</span>你是否有正常的银行收入流水，能明确计算收入金额或纳税？</div>
+        <p class="wiz-hint">自由职业者若无稳定可核验的收入流水 / 税单，通常无法作为主申请人申办多次；将影响可办签证类型。</p>
+        <div class="wiz-opts wiz-opts-col">
+          <button class="wiz-opt" data-act="freeFlow" data-val="yes">✅ 有，流水或税单能清晰体现收入 / 纳税</button>
+          <button class="wiz-opt" data-act="freeFlow" data-val="no">❌ 没有 / 无法明确计算收入或纳税</button>
+        </div>
+        <button class="wiz-back" data-back>← 上一步</button>
+      </div>
+
       <div class="wiz-step" id="step-income-amt" hidden>
         <div class="wiz-q"><span class="wiz-num">4</span>近 12 个月税后年收入大约多少（万元）？</div>
         <p class="wiz-hint">填数字即可，系统据此判断你能办的签证类型：≥10 万→单次，≥20 万→三年多次，≥50 万→五年多次。</p>
@@ -537,7 +548,7 @@
       </div>
       <!-- free -->
       <div class="panel" data-id="free">
-        <label class="mat"><input type="checkbox" class="chk"><div class="body"><div class="top"><span class="name">收入说明及证明</span><span class="badge b-ori">原件</span></div><div class="req">本人收入来源说明并亲笔签名（写明对账单每月资金来源），并提供相关经济来源证明，证明年收入。</div><div class="note">参考类别：投资理财、房屋商铺租赁、艺术家、自由撰稿人、网红达人等。</div></div></label>
+        <label class="mat"><input type="checkbox" class="chk"><div class="body"><div class="top"><span class="name">收入说明及证明</span><span class="badge b-ori">原件</span></div><div class="req">本人收入来源说明并亲笔签名（写明对账单每月资金来源），并提供相关经济来源证明，证明年收入。</div><div class="note">参考类别：投资理财、房屋商铺租赁、艺术家、自由撰稿人、网红达人等。</div><div class="note">⚠ 若无稳定可核验的银行收入流水 / 税单（无法明确计算收入或纳税），通常仅可办<b>单次</b>旅游签证，或作为<b>副申请人</b>随符合条件的直系亲属办理。</div></div></label>
         <label class="mat"><input type="checkbox" class="chk"><div class="body"><div class="top"><span class="name">房产证</span><span class="badge b-copy">复印件</span></div><div class="req">建议提供（如有）。</div></div></label>
       </div>
     </div>
@@ -736,7 +747,7 @@
     <div class="disclaimer">
       免责声明：本页面为签证材料自助核对工具，仅供参考，不构成官方承诺。最终受理标准、材料要求与审核时效以日本国驻上海总领事为准。申请过程中可能出现资料增补或退件，审核周期将相应延长，敬请配合。
     </div>
-    <div style="text-align:center;margin-top:14px;font-size:12px;opacity:.55">页面版本 v2026.10.14-K</div>
+    <div style="text-align:center;margin-top:14px;font-size:12px;opacity:.55">页面版本 v2026.10.14-L</div>
   </div>
 </footer>
 
@@ -804,7 +815,7 @@ function closeLb(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
 
 /* ===== 智能材料助手：分步向导 ===== */
-const st={ region:null, path:null, incId:null, income:null, incEcon:null,
+const st={ region:null, path:null, incId:null, freeFlow:null, income:null, incEcon:null,
   depRel:null, depStatus:null, dep3y5y:null, stu:null, depAmt:null };
 let history=[], curStep='region';
 
@@ -840,6 +851,10 @@ function advance(){
   else if(!st.path) next='step-path';
   else if(st.path==='income'){
     if(!st.incId) next='step-income-id';
+    else if(st.incId==='free' && st.freeFlow===null) next='step-free-flow';
+    else if(st.incId==='free' && st.freeFlow==='no'){
+      if(!st.incEcon) next='step-income-visa'; else next='RESULT';
+    }
     else if(st.income===null) next='step-income-amt';
     else if(!st.incEcon) next='step-income-visa';
     else next='RESULT';
@@ -869,6 +884,7 @@ document.querySelectorAll('.wiz-opt').forEach(b=>{
     if(act==='region'){ st.region=val; document.getElementById('regionWarn').classList.remove('show'); advance(); }
     else if(act==='path'){ st.path=val; advance(); }
     else if(act==='incId'){ st.incId=val; advance(); }
+    else if(act==='freeFlow'){ st.freeFlow=val; if(val==='no') st.incEcon=null; advance(); }
     else if(act==='incQuick'){ document.getElementById('incInput').value=val; st.income=parseFloat(val); advance(); }
     else if(act==='depRel'){ st.depRel=val; advance(); }
     else if(act==='depStatus'){ st.depStatus=val; advance(); }
@@ -899,6 +915,23 @@ function visaByIncome(v){
 }
 function renderIncomeVisa(){
   const v=st.income, list=visaByIncome(v), box=document.getElementById('incVisaOut'), hint=document.getElementById('incVisaHint');
+  // 自由职业·无流水分支：仅单次，或转为副申请人
+  if(st.incId==='free' && st.freeFlow==='no'){
+    box.innerHTML='<span class="visa-badge">✓ 单次旅游签证</span>';
+    hint.innerHTML='自由职业且无稳定可核验收入流水 / 税单：<b>仅可办理单次</b>旅游签证。如需多次，请作为<b>副申请人</b>随符合条件的直系亲属办理，或返回上一步选「有」并补充可核验流水 / 税单。';
+    let opts='';
+    opts+=`<button class="wiz-opt" data-act="incEcon" data-val="dep">🏦 存款 / 理财证明 10 万 + 近12个月流水（单次）</button>`;
+    opts+=`<button class="wiz-opt" data-act="incEcon" data-val="card">💎 信用卡金卡（额度3万+）+ 近3月消费明细（仅单次，可免在职证明）</button>`;
+    opts+=`<button class="wiz-opt" data-act="freeReroute" data-val="deputy">👨‍👩‍👧 改为「副申请人」随亲属办理</button>`;
+    document.getElementById('incEconOpts').innerHTML=opts;
+    document.querySelectorAll('#incEconOpts [data-act="incEcon"]').forEach(b=>{
+      b.onclick=()=>{ st.incEcon=b.dataset.val; setSel('incEcon',b.dataset.val); history.push(curStep); advance(); };
+    });
+    document.querySelector('#incEconOpts [data-act="freeReroute"]').onclick=()=>{
+      st.path='deputy'; st.incId=null; st.freeFlow=null; st.income=null; st.incEcon=null; history.push(curStep); advance();
+    };
+    return;
+  }
   if(list.length===0){
     box.innerHTML='<div class="visa-badge lock">⚠ 收入未达主申请人门槛（≥10万）</div>';
     hint.innerHTML='近 12 个月税后年收入不足 10 万，暂不能作为主申请人办理。可改为：① 作为<b>副申请人</b>随符合条件的直系亲属办理；② 用<b>存款 / 理财证明</b>办理（见下方其他选项或返回上一步切换情况）。';
@@ -955,27 +988,37 @@ function buildResult(){
   const base=baseMats();
 
   if(st.path==='income'){
-    const v=st.income, list=visaByIncome(v);
-    title = `主申请人 · 收入 ${v} 万`;
-    if(list.length===0){
-      summary='⚠ 收入未达主申请人门槛（≥10万），本结果仅供参考，建议切换为「副申请人」或「存款证明」路径。';
+    if(st.incId==='free' && st.freeFlow==='no'){
+      title = `主申请人 · 自由职业（仅单次）`;
+      summary='自由职业且无稳定可核验收入流水 / 税单：<b>仅可办理单次</b>旅游签证。如需多次，建议作为<b>副申请人</b>随符合条件的直系亲属办理，或返回上一步选「有」并补充可核验流水 / 税单。';
+      let econBlock='';
+      if(st.incEcon==='dep') econBlock=itemHtml('存款/理财证明（10万，原件不退还）','银行出具、可在线验证、显示近半年日均或冻结3个月')+itemHtml('近12个月银行流水','');
+      else if(st.incEcon==='card') econBlock=itemHtml('信用卡金卡 + 近3月消费明细','金卡正反面彩色复印件（额度截图3万+），可免在职证明');
+      blocks.push(['基础材料', base.map(m=>itemHtml(m[0],m[1])).join('')]);
+      blocks.push(['经济能力证明（已选）',econBlock]);
     } else {
-      summary=`可办签证类型：${list.map(k=>VISA[k].t).join(' / ')}。经济材料已选「${econLabel(st.incEcon)}」，据此准备即可。`;
+      const v=st.income, list=visaByIncome(v);
+      title = `主申请人 · 收入 ${v} 万`;
+      if(list.length===0){
+        summary='⚠ 收入未达主申请人门槛（≥10万），本结果仅供参考，建议切换为「副申请人」或「存款证明」路径。';
+      } else {
+        summary=`可办签证类型：${list.map(k=>VISA[k].t).join(' / ')}。经济材料已选「${econLabel(st.incEcon)}」，据此准备即可。`;
+      }
+      const empNote = st.incId==='emp'?'在职证明（原件，近1个月内，盖章+领导签名）'
+        : st.incId==='free'?'收入说明及证明（原件，本人亲签）'
+        : '退休证（复印件）+ 退休金流水';
+      let econBlock='';
+      if(st.incEcon==='tax') econBlock=itemHtml('近12个月税单','显示单位名称且达标（单次>800元 / 三年>1.7万 / 五年>7.8万）的税单可免在职证明',{f:'tutorial-tax.jpg',t:'如何拉个人所得税纳税清单',l:'拉税单教程'})+itemHtml(empNote, st.incId==='emp'?'体现职务/在职时间/收入/公司信息':'');
+      else if(st.incEcon==='flow'){
+        if(st.incId==='ret') econBlock=itemHtml('退休金流水','近12个月退休金合计达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('退休证（复印件）','');
+        else if(st.incId==='free') econBlock=itemHtml('银行流水','近12个月收入流水合计达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('收入说明及证明（原件，本人亲签）','');
+        else econBlock=itemHtml('工资卡银行流水','近12个月税后年收入达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('在职证明（原件，近1个月内，盖章+领导签名）','');
+      }
+      else if(st.incEcon==='card') econBlock=itemHtml('信用卡金卡 + 近3月消费明细','金卡正反面彩色复印件（额度截图3万+），可免在职证明');
+      else if(st.incEcon==='dep'){ const amt=v>=50?200:v>=20?100:10; econBlock=itemHtml(`存款/理财证明（${amt}万，原件不退还）`,'银行出具、可在线验证、显示近半年日均或冻结3个月')+itemHtml('近12个月工资/退休金流水',''); }
+      blocks.push(['基础材料', base.map(m=>itemHtml(m[0],m[1])).join('')]);
+      blocks.push(['经济能力证明（已选）',econBlock]);
     }
-    const empNote = st.incId==='emp'?'在职证明（原件，近1个月内，盖章+领导签名）'
-      : st.incId==='free'?'收入说明及证明（原件，本人亲签）'
-      : '退休证（复印件）+ 退休金流水';
-    let econBlock='';
-    if(st.incEcon==='tax') econBlock=itemHtml('近12个月税单','显示单位名称且达标（单次>800元 / 三年>1.7万 / 五年>7.8万）的税单可免在职证明',{f:'tutorial-tax.jpg',t:'如何拉个人所得税纳税清单',l:'拉税单教程'})+itemHtml(empNote, st.incId==='emp'?'体现职务/在职时间/收入/公司信息':'');
-    else if(st.incEcon==='flow'){
-      if(st.incId==='ret') econBlock=itemHtml('退休金流水','近12个月退休金合计达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('退休证（复印件）','');
-      else if(st.incId==='free') econBlock=itemHtml('银行流水','近12个月收入流水合计达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('收入说明及证明（原件，本人亲签）','');
-      else econBlock=itemHtml('工资卡银行流水','近12个月税后年收入达标（≥'+([10,20,50].filter(x=>x<=v).pop())+'万）')+itemHtml('在职证明（原件，近1个月内，盖章+领导签名）','');
-    }
-    else if(st.incEcon==='card') econBlock=itemHtml('信用卡金卡 + 近3月消费明细','金卡正反面彩色复印件（额度截图3万+），可免在职证明');
-    else if(st.incEcon==='dep'){ const amt=v>=50?200:v>=20?100:10; econBlock=itemHtml(`存款/理财证明（${amt}万，原件不退还）`,'银行出具、可在线验证、显示近半年日均或冻结3个月')+itemHtml('近12个月工资/退休金流水',''); }
-    blocks.push(['基础材料', base.map(m=>itemHtml(m[0],m[1])).join('')]);
-    blocks.push(['经济能力证明（已选）',econBlock]);
   }
   else if(st.path==='deputy'){
     title=`副申请人 · ${REL[st.depRel]}`;
@@ -1032,7 +1075,7 @@ function econLabel(v){
 
 function restart(){
   Object.keys(st).forEach(k=>st[k]=null);
-  history=[]; st.region=null; st.path=null; st.incId=null; st.income=null; st.incEcon=null;
+  history=[]; st.region=null; st.path=null; st.incId=null; st.freeFlow=null; st.income=null; st.incEcon=null;
   st.depRel=null; st.depStatus=null; st.dep3y5y=null; st.stu=null; st.depAmt=null;
   document.querySelectorAll('.wiz-opt').forEach(b=>b.classList.remove('sel'));
   document.getElementById('incInput').value='';
